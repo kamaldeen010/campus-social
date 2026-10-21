@@ -4,7 +4,7 @@ import Link from 'next/link'
 import { useParams } from 'next/navigation'
 import { Bell, BellRing, MessageSquare, Ban, Flag } from 'lucide-react'
 import { supabase } from '@/lib/supabase'
-import { POST_SELECT } from '@/lib/queries'
+import { POST_SELECT, withOriginals } from '@/lib/queries'
 import { useAuth } from '@/providers/AuthProvider'
 import { name } from '@/lib/format'
 import { Avatar, Empty } from '@/components/ui'
@@ -36,7 +36,7 @@ export default function ProfilePage() {
       supabase.from('post_subscriptions').select('target_id').eq('subscriber_id', me.id).eq('target_id', prof.id).maybeSingle(),
       supabase.from('blocks').select('blocked_id').eq('blocker_id', me.id).eq('blocked_id', prof.id).maybeSingle()
     ])
-    setP(prof); setPosts(ps || []); setCount(cnt || 0); setFs(f); setSubscribed(!!sub); setBlocked(!!b); setState('ready')
+    setP(prof); setPosts(await withOriginals(ps || [])); setCount(cnt || 0); setFs(f); setSubscribed(!!sub); setBlocked(!!b); setState('ready')
   }, [username, me.id])
 
   useEffect(() => { load() }, [load])

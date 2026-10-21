@@ -1,7 +1,7 @@
 'use client'
 import { useCallback, useEffect, useState } from 'react'
 import { supabase } from '@/lib/supabase'
-import { POST_SELECT } from '@/lib/queries'
+import { POST_SELECT, withOriginals } from '@/lib/queries'
 import Composer from '@/components/Composer'
 import PostCard from '@/components/PostCard'
 import { PageHeader, Empty } from '@/components/ui'
@@ -12,7 +12,7 @@ async function fetchPosts(before) {
   let q = supabase.from('posts').select(POST_SELECT).order('created_at', { ascending: false }).limit(PAGE)
   if (before) q = q.lt('created_at', before)
   const { data } = await q
-  return data || []
+  return withOriginals(data || [])
 }
 
 export default function FeedPage() {
@@ -26,12 +26,11 @@ export default function FeedPage() {
     fetchPosts().then((d) => { setPosts(d); setMore(d.length === PAGE); setLoading(false) })
   }, [])
 
-  // Real-time: new posts appear instantly. RLS already hides blocked accounts.
   useEffect(() => {
     const ch = supabase.channel('feed-posts')
       .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'posts' }, async ({ new: row }) => {
         const { data } = await supabase.from('posts').select(POST_SELECT).eq('id', row.id).maybeSingle()
-        if (data) add(data)
+        if (data) add(await withOriginals(data))
       }).subscribe()
     return () => { supabase.removeChannel(ch) }
   }, [add])
@@ -45,7 +44,7 @@ export default function FeedPage() {
   return (
     <>
       <PageHeader title="Feed" />
-      <Composer onPosted={add} />
+      <Composer onPosted={async (p) => add(await withOriginals(p))} />
       {loading ? <Empty>Loading…</Empty> : posts.length === 0 ? <Empty>No posts yet. Write the first one.</Empty> : (
         posts.map((p) => <PostCard key={p.id} post={p} onDeleted={(id) => setPosts((c) => c.filter((x) => x.id !== id))} />)
       )}
