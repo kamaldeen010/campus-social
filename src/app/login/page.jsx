@@ -4,7 +4,7 @@ import { useRouter } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
 import { useAuth } from '@/providers/AuthProvider'
 import { getAccounts, forgetAccount } from '@/lib/savedAccounts'
-import { Avatar } from '@/components/ui'
+import { Avatar, Logo } from '@/components/ui'
 
 export default function LoginPage() {
   const router = useRouter()
@@ -38,7 +38,8 @@ export default function LoginPage() {
     if (mode === 'signup') {
       const u = username.trim().toLowerCase().replace(/^@/, '')
       if (!/^[a-z0-9_]{3,20}$/.test(u)) {
-        setError('Username must be 3-20 characters: letters, numbers or underscore.'); return setBusy(false)
+        setError('Username must be 3-20 characters: letters, numbers or underscore.')
+        return setBusy(false)
       }
       const { data: free } = await supabase.rpc('username_available', { u })
       if (!free) { setError(`@${u} is taken. Try another username.`); return setBusy(false) }
@@ -55,45 +56,61 @@ export default function LoginPage() {
   }
 
   return (
-    <main className="mx-auto flex min-h-screen max-w-sm flex-col justify-center px-6 py-10">
-      <h1 className="text-2xl font-semibold tracking-tight">Campus</h1>
-      <p className="muted mb-6 mt-1 text-sm">Posts, friends and chats for students.</p>
-
-      {mode === 'signin' && accounts.length > 0 && (
-        <div className="mb-6 border border-zinc-200 dark:border-zinc-800">
-          <div className="muted border-b border-zinc-200 px-3 py-2 text-xs dark:border-zinc-800">Continue as</div>
-          {accounts.map((a) => (
-            <div key={a.id} className="flex items-center gap-3 border-b border-zinc-200 px-3 py-2 last:border-0 dark:border-zinc-800">
-              <button disabled={busy} onClick={() => oneClick(a)} className="flex min-w-0 flex-1 items-center gap-3 text-left">
-                <Avatar profile={{ username: a.username, avatar_url: a.avatar_url }} size={32} />
-                <span className="min-w-0">
-                  <span className="block truncate text-sm font-medium">@{a.username}</span>
-                  <span className="muted block truncate text-xs">{a.email}</span>
-                </span>
-              </button>
-              <button className="muted text-xs hover:underline" onClick={() => { forgetAccount(a.id); setAccounts(getAccounts()) }}>Forget</button>
-            </div>
-          ))}
+    <div className="grid min-h-screen md:grid-cols-2">
+      <aside className="relative hidden overflow-hidden bg-zinc-950 p-12 text-zinc-100 md:flex md:flex-col md:justify-between">
+        <div className="flex items-center gap-2.5"><Logo size={36} /><span className="text-xl font-semibold tracking-tight">Campus</span></div>
+        <div className="relative z-10">
+          <h2 className="text-4xl font-semibold leading-tight tracking-tight">Your campus,<br />in one place.</h2>
+          <p className="mt-4 max-w-sm text-zinc-400">Post updates, message friends, join groups and speak freely in anonymous rooms.</p>
         </div>
-      )}
+        <p className="relative z-10 text-xs text-zinc-500">Made for students.</p>
+        <div className="pointer-events-none absolute -right-24 -top-24 h-96 w-96 rounded-full bg-accent/30 blur-3xl" />
+        <div className="pointer-events-none absolute -bottom-32 -left-16 h-80 w-80 rounded-full bg-accent/10 blur-3xl" />
+      </aside>
 
-      <form onSubmit={submit} className="space-y-3">
-        {mode === 'signup' && (
-          <>
-            <input className="input" placeholder="@username" value={username} onChange={(e) => setUsername(e.target.value)} required />
-            <input className="input" placeholder="Display name (optional)" value={displayName} onChange={(e) => setDisplayName(e.target.value)} />
-          </>
-        )}
-        <input className="input" type="email" placeholder="Email" autoComplete="email" value={email} onChange={(e) => setEmail(e.target.value)} required />
-        <input className="input" type="password" placeholder="Password" minLength={6}
-          autoComplete={mode === 'signup' ? 'new-password' : 'current-password'} value={password} onChange={(e) => setPassword(e.target.value)} required />
-        {error && <p className="text-sm text-red-600 dark:text-red-400">{error}</p>}
-        {info && <p className="muted text-sm">{info}</p>}
-        <button className="btn btn-primary w-full" disabled={busy}>{mode === 'signup' ? 'Create account' : 'Sign in'}</button>
-      </form>
-      <button className="muted mt-4 text-sm hover:underline" onClick={() => { setMode(mode === 'signin' ? 'signup' : 'signin'); setError(''); setInfo('') }}>
-        {mode === 'signin' ? 'New here? Create an account' : 'Have an account? Sign in'}
-      </button>
-    </main>
+      <main className="flex items-center justify-center px-6 py-10">
+        <div className="w-full max-w-sm animate-rise">
+          <div className="mb-8 flex items-center gap-2.5 md:hidden"><Logo size={36} /><span className="text-xl font-semibold tracking-tight">Campus</span></div>
+          <h1 className="text-2xl font-semibold tracking-tight">{mode === 'signin' ? 'Welcome back' : 'Create your account'}</h1>
+          <p className="muted mb-6 mt-1 text-sm">{mode === 'signin' ? 'Sign in to continue.' : 'Pick a username and get started.'}</p>
+
+          {mode === 'signin' && accounts.length > 0 && (
+            <div className="card mb-6 overflow-hidden">
+              <div className="muted border-b border-zinc-100 px-3.5 py-2 text-xs font-medium dark:border-zinc-800/70">Continue as</div>
+              {accounts.map((a) => (
+                <div key={a.id} className="flex items-center gap-3 border-b border-zinc-100 px-3.5 py-2.5 last:border-0 dark:border-zinc-800/70">
+                  <button disabled={busy} onClick={() => oneClick(a)} className="flex min-w-0 flex-1 items-center gap-3 text-left">
+                    <Avatar profile={{ username: a.username, avatar_url: a.avatar_url }} size={36} />
+                    <span className="min-w-0">
+                      <span className="block truncate text-sm font-medium">@{a.username}</span>
+                      <span className="muted block truncate text-xs">{a.email}</span>
+                    </span>
+                  </button>
+                  <button className="muted text-xs hover:underline" onClick={() => { forgetAccount(a.id); setAccounts(getAccounts()) }}>Forget</button>
+                </div>
+              ))}
+            </div>
+          )}
+
+          <form onSubmit={submit} className="space-y-3">
+            {mode === 'signup' && (
+              <>
+                <input className="input" placeholder="@username" autoCapitalize="none" value={username} onChange={(e) => setUsername(e.target.value)} required />
+                <input className="input" placeholder="Display name (optional)" value={displayName} onChange={(e) => setDisplayName(e.target.value)} />
+              </>
+            )}
+            <input className="input" type="email" placeholder="Email" autoComplete="email" value={email} onChange={(e) => setEmail(e.target.value)} required />
+            <input className="input" type="password" placeholder="Password" minLength={6}
+              autoComplete={mode === 'signup' ? 'new-password' : 'current-password'} value={password} onChange={(e) => setPassword(e.target.value)} required />
+            {error && <p className="text-sm text-red-600 dark:text-red-400">{error}</p>}
+            {info && <p className="muted text-sm">{info}</p>}
+            <button className="btn btn-primary w-full py-2.5" disabled={busy}>{busy ? 'Please wait…' : mode === 'signup' ? 'Create account' : 'Sign in'}</button>
+          </form>
+          <button className="muted mt-5 text-sm hover:underline" onClick={() => { setMode(mode === 'signin' ? 'signup' : 'signin'); setError(''); setInfo('') }}>
+            {mode === 'signin' ? 'New here? Create an account' : 'Have an account? Sign in'}
+          </button>
+        </div>
+      </main>
+    </div>
   )
 }

@@ -1,53 +1,75 @@
 'use client'
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
+import { Newspaper } from 'lucide-react'
 import { supabase } from '@/lib/supabase'
-import { POST_SELECT, withOriginals } from '@/lib/queries'
+import { POST_SELECT, hydratePosts, buildCards } from '@/lib/queries'
+import { useAuth } from '@/providers/AuthProvider'
 import Composer from '@/components/Composer'
 import PostCard from '@/components/PostCard'
-import { PageHeader, Empty } from '@/components/ui'
+import { PageHeader, Empty, PostSkeleton } from '@/components/ui'
 
 const PAGE = 30
 
-async function fetchPosts(before) {
-  let q = supabase.from('posts').select(POST_SELECT).order('created_at', { ascending: false }).limit(PAGE)
+async function fetchRows(before) {
+  let q = supabase.from('posts').select(POST_SELECT).is('reply_to', null)
+    .order('created_at', { ascending: false }).limit(PAGE)
   if (before) q = q.lt('created_at', before)
-  const { data } = await q
-  return withOriginals(data || [])
+  const { data, error } = await q
+  if (error) return { rows: [], error: error.message }
+  return { rows: await hydratePosts(data || []) }
 }
 
 export default function FeedPage() {
-  const [posts, setPosts] = useState([])
+  const { profile: me } = useAuth()
+  const [rows, setRows] = useState([])
   const [loading, setLoading] = useState(true)
   const [more, setMore] = useState(false)
+  const [error, setError] = useState('')
+  const cards = useMemo(() => buildCards(rows), [rows])
 
-  const add = useCallback((p) => setPosts((cur) => (cur.some((x) => x.id === p.id) ? cur : [p, ...cur])), [])
+  const add = useCallback((r) => setRows((cur) => (cur.some((x) => x.id === r.id) ? cur : [r, ...cur])), [])
 
   useEffect(() => {
-    fetchPosts().then((d) => { setPosts(d); setMore(d.length === PAGE); setLoading(false) })
+    fetchRows().then(({ rows, error }) => {
+      setRows(rows); setMore(rows.length === PAGE); setError(error || ''); setLoading(false)
+    })
   }, [])
 
+  // Real-time: new posts and deletions. RLS already hides blocked accounts.
   useEffect(() => {
     const ch = supabase.channel('feed-posts')
       .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'posts' }, async ({ new: row }) => {
+        if (row.reply_to) return
         const { data } = await supabase.from('posts').select(POST_SELECT).eq('id', row.id).maybeSingle()
-        if (data) add(await withOriginals(data))
-      }).subscribe()
+        if (data) add(await hydratePosts(data))
+      })
+      .on('postgres_changes', { event: 'DELETE', schema: 'public', table: 'posts' }, ({ old }) => {
+        setRows((cur) => cur.filter((x) => x.id !== old.id))
+      })
+      .subscribe()
     return () => { supabase.removeChannel(ch) }
   }, [add])
 
   async function loadMore() {
-    const d = await fetchPosts(posts[posts.length - 1]?.created_at)
-    setPosts((cur) => [...cur, ...d.filter((x) => !cur.some((c) => c.id === x.id))])
-    setMore(d.length === PAGE)
+    const { rows: next } = await fetchRows(rows[rows.length - 1]?.created_at)
+    setRows((cur) => [...cur, ...next.filter((x) => !cur.some((c) => c.id === x.id))])
+    setMore(next.length === PAGE)
   }
+
+  const removePost = (id) => setRows((cur) => cur.filter((x) => x.id !== id && x.repost_of !== id))
+  const undoRepost = (id) => setRows((cur) => cur.filter((x) => !(x.repost_of === id && x.author_id === me.id)))
 
   return (
     <>
-      <PageHeader title="Feed" />
-      <Composer onPosted={async (p) => add(await withOriginals(p))} />
-      {loading ? <Empty>Loading…</Empty> : posts.length === 0 ? <Empty>No posts yet. Write the first one.</Empty> : (
-        posts.map((p) => <PostCard key={p.id} post={p} onDeleted={(id) => setPosts((c) => c.filter((x) => x.id !== id))} />)
-      )}
+      <PageHeader title="Home" />
+      <Composer onPosted={add} />
+      {loading ? <PostSkeleton /> : error ? (
+        <Empty title="Couldn't load the feed">{error}</Empty>
+      ) : cards.length === 0 ? (
+        <Empty icon={Newspaper} title="Nothing here yet">Be the first to post something.</Empty>
+      ) : cards.map((c) => (
+        <PostCard key={c.key} post={c.post} stats={c.stats} repostedBy={c.repostedBy} onDeleted={removePost} onUndoRepost={undoRepost} />
+      ))}
       {more && <div className="p-4 text-center"><button className="btn" onClick={loadMore}>Load more</button></div>}
     </>
   )

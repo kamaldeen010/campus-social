@@ -2,17 +2,16 @@
 
 Next.js 14 (App Router) + Tailwind + Supabase.
 
-1. Create a Supabase project and run the SQL from the separate SQL zip (`00_all_in_one.sql`).
-2. `cp .env.example .env.local` and paste your project URL and anon key.
-3. `npm install && npm run dev` -> http://localhost:3000
+## Update an existing project
+1. Run `06_replies.sql` (from the SQL zip) in the Supabase SQL Editor first.
+2. Unzip this over your `campus-social` folder and replace all files. Your `.env.local` is not in the zip, so it stays.
+3. `npm run dev` to test, then `git add .`, `git commit -m "v2"`, `git push`.
+
+## New project
+`cp .env.example .env.local`, paste your Supabase URL and publishable key, `npm install && npm run dev`.
 
 ## Structure
 - `src/app/login` sign in / sign up / one-click accounts
-- `src/app/(app)/*` authenticated pages: feed, u/[username], friends, messages, groups, notifications, settings
-- `src/components` shared UI (PostCard, Composer, ReportDialog, Nav...)
-- `src/providers` Auth + Theme state
-- `src/lib` Supabase client, queries, helpers
-
-## One-click login
-Passwords are never stored. After a successful login the app keeps the account's refresh token in
-localStorage; the one-click button exchanges it for a fresh session. "Forget" in Settings removes it.
+- `src/app/(app)/*` feed, post/[id] (replies), u/[username], friends, messages, groups, notifications, settings
+- `src/components` PostCard, Composer, Nav, ReportDialog, shared UI
+- `src/providers` Auth + Theme, `src/lib` Supabase client and queries

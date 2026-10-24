@@ -6,4 +6,5 @@ export function timeAgo(iso) {
   if (s < 604800) return `${Math.floor(s / 86400)}d`
   return new Date(iso).toLocaleDateString()
 }
+export const fullDate = (iso) => new Date(iso).toLocaleString([], { dateStyle: 'medium', timeStyle: 'short' })
 export const name = (p) => p?.display_name || p?.username || 'Unknown'

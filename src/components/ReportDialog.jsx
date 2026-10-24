@@ -19,14 +19,16 @@ export default function ReportDialog({ open, onClose, targetUserId = null, postI
     })
     if (error) setError(error.message); else setDone(true)
   }
+  const close = () => { setDone(false); setError(''); onClose() }
+
   return (
-    <div className="fixed inset-0 z-50 grid place-items-center bg-black/40 p-4" onClick={onClose}>
-      <div className="w-full max-w-sm border border-zinc-200 bg-white p-4 dark:border-zinc-800 dark:bg-zinc-950" onClick={(e) => e.stopPropagation()}>
-        <h2 className="mb-3 text-sm font-semibold">{postId ? 'Report post' : 'Report account'}</h2>
+    <div className="fixed inset-0 z-50 grid place-items-end bg-black/50 p-0 backdrop-blur-sm sm:place-items-center sm:p-4" onClick={close}>
+      <div className="card w-full max-w-sm animate-rise rounded-b-none p-5 shadow-xl sm:rounded-b-xl" onClick={(e) => e.stopPropagation()}>
+        <h2 className="mb-3 text-base font-semibold">{postId ? 'Report post' : 'Report account'}</h2>
         {done ? (
           <>
-            <p className="muted mb-4 text-sm">Report sent. Moderators will review it.</p>
-            <button className="btn" onClick={() => { setDone(false); onClose() }}>Close</button>
+            <p className="muted mb-4 text-sm">Thanks. Moderators will review your report.</p>
+            <button className="btn w-full" onClick={close}>Close</button>
           </>
         ) : (
           <>
@@ -34,9 +36,9 @@ export default function ReportDialog({ open, onClose, targetUserId = null, postI
               {REASONS.map((r) => <option key={r}>{r}</option>)}
             </select>
             <textarea className="input mb-2" rows={3} maxLength={500} placeholder="Details (optional)" value={details} onChange={(e) => setDetails(e.target.value)} />
-            {error && <p className="mb-2 text-sm text-red-600">{error}</p>}
+            {error && <p className="mb-2 text-sm text-red-600 dark:text-red-400">{error}</p>}
             <div className="flex justify-end gap-2">
-              <button className="btn" onClick={onClose}>Cancel</button>
+              <button className="btn" onClick={close}>Cancel</button>
               <button className="btn btn-primary" onClick={submit}>Send report</button>
             </div>
           </>

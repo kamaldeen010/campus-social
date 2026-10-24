@@ -1,11 +1,12 @@
 'use client'
 import { useCallback, useEffect, useRef, useState } from 'react'
+import Link from 'next/link'
 import { useParams, useRouter } from 'next/navigation'
-import { Send, EyeOff, Copy } from 'lucide-react'
+import { ArrowLeft, Send, EyeOff, Copy, Check } from 'lucide-react'
 import { supabase } from '@/lib/supabase'
 import { useAuth } from '@/providers/AuthProvider'
 import { timeAgo, name } from '@/lib/format'
-import { Empty } from '@/components/ui'
+import { Avatar, Empty } from '@/components/ui'
 
 const SEL = 'id,group_id,content,anon_no,created_at,sender:profiles!group_messages_sender_id_fkey(id,username,display_name,avatar_url)'
 
@@ -20,6 +21,7 @@ export default function GroupPage() {
   const [state, setState] = useState('loading')
   const [text, setText] = useState('')
   const [error, setError] = useState('')
+  const [copied, setCopied] = useState(false)
   const bottom = useRef(null)
 
   const load = useCallback(async () => {
@@ -68,30 +70,35 @@ export default function GroupPage() {
     await supabase.from('group_members').delete().eq('group_id', id).eq('user_id', me.id)
     router.push('/groups')
   }
+  function copyCode() {
+    navigator.clipboard?.writeText(group.invite_code)
+    setCopied(true); setTimeout(() => setCopied(false), 1500)
+  }
 
-  if (state === 'loading') return <Empty>Loading…</Empty>
-  if (state === 'missing') return <Empty>This group doesn't exist or is private.</Empty>
+  if (state === 'loading') return <div className="chat-screen grid place-items-center"><div className="h-8 w-8 animate-pulse rounded-lg bg-accent" /></div>
+  if (state === 'missing') return <Empty title="Group not found">It doesn't exist or it is private.</Empty>
 
   const anon = group.is_anonymous
-  const label = (m) => anon
-    ? (m.anon_no === member.anon_no ? `You · Anon #${m.anon_no}` : `Anon #${m.anon_no}`)
-    : (m.sender?.id === me.id ? 'You' : name(m.sender))
+  const anonColor = (n) => `hsl(${(n * 67) % 360} 40% 38%)`
 
   return (
-    <div className="flex h-[calc(100vh-6.5rem)] flex-col md:h-[calc(100vh-2.5rem)]">
-      <div className="flex items-center justify-between gap-3 border-b border-zinc-200 px-4 py-2.5 dark:border-zinc-800">
-        <div className="min-w-0">
-          <div className="flex items-center gap-2 text-sm font-semibold"><span className="truncate">{group.name}</span>{anon && <EyeOff size={14} className="muted" />}</div>
+    <div className="chat-screen flex flex-col">
+      <header className="flex shrink-0 items-center gap-2 border-b border-zinc-100 px-3 py-2.5 dark:border-zinc-800/70">
+        <Link href="/groups" aria-label="Back" className="rounded-full p-2 hover:bg-zinc-100 dark:hover:bg-zinc-900"><ArrowLeft size={18} /></Link>
+        <div className="min-w-0 flex-1">
+          <div className="flex items-center gap-1.5 text-[15px] font-semibold leading-tight">
+            <span className="truncate">{group.name}</span>{anon && <EyeOff size={14} className="muted shrink-0" />}
+          </div>
           <div className="muted truncate text-xs">
-            {anon ? 'Anonymous room · identities are hidden' : group.is_public ? 'Public group' : 'Private group'}{member ? ` · ${count} members` : ''}
+            {anon ? 'Anonymous room · identities hidden' : group.is_public ? 'Public group' : 'Private group'}{member ? ` · ${count} members` : ''}
           </div>
         </div>
         {member && <button className="btn" onClick={leave}>Leave</button>}
-      </div>
+      </header>
 
       {!member ? (
         <div className="grid flex-1 place-items-center p-6 text-center">
-          <div>
+          <div className="max-w-xs">
             <p className="muted mb-3 text-sm">{group.description || 'Join this group to read and send messages.'}</p>
             {anon && <p className="muted mb-3 text-xs">You will appear as an anonymous tag. Nobody can see your name.</p>}
             <button className="btn btn-primary" onClick={join}>Join group</button>
@@ -101,26 +108,39 @@ export default function GroupPage() {
       ) : (
         <>
           {!group.is_public && (
-            <button className="muted flex items-center gap-2 border-b border-zinc-200 px-4 py-2 text-left text-xs dark:border-zinc-800"
-              onClick={() => navigator.clipboard?.writeText(group.invite_code)}>
-              <Copy size={12} />Invite code: <span className="font-mono">{group.invite_code}</span> (tap to copy)
+            <button onClick={copyCode} className="muted flex shrink-0 items-center gap-2 border-b border-zinc-100 px-4 py-2 text-left text-xs dark:border-zinc-800/70">
+              {copied ? <Check size={12} /> : <Copy size={12} />}Invite code: <span className="font-mono">{group.invite_code}</span> · tap to copy
             </button>
           )}
-          {anon && <div className="muted border-b border-zinc-200 px-4 py-2 text-xs dark:border-zinc-800">You are Anon #{member.anon_no} in this room.</div>}
-          <div className="flex-1 space-y-3 overflow-y-auto px-4 py-4">
-            {msgs.length === 0 && <Empty>No messages yet.</Empty>}
-            {msgs.map((m) => (
-              <div key={m.id}>
-                <div className="muted text-xs"><span className="font-medium text-zinc-900 dark:text-zinc-100">{label(m)}</span> · {timeAgo(m.created_at)}</div>
-                <p className="whitespace-pre-wrap break-words text-sm">{m.content}</p>
-              </div>
-            ))}
+          {anon && <div className="muted shrink-0 border-b border-zinc-100 px-4 py-2 text-xs dark:border-zinc-800/70">You are Anon #{member.anon_no} in this room.</div>}
+
+          <div className="min-h-0 flex-1 space-y-4 overflow-y-auto px-4 py-4">
+            {msgs.length === 0 && <Empty title="No messages yet">Say something to get it started.</Empty>}
+            {msgs.map((m) => {
+              const isMe = anon ? m.anon_no === member.anon_no : m.sender?.id === me.id
+              return (
+                <div key={m.id} className="flex gap-3">
+                  {anon
+                    ? <div style={{ background: anonColor(m.anon_no || 0) }} className="grid h-9 w-9 shrink-0 place-items-center rounded-lg text-xs font-semibold text-white">#{m.anon_no}</div>
+                    : <Avatar profile={m.sender} size={36} />}
+                  <div className="min-w-0">
+                    <div className="flex items-baseline gap-2">
+                      <span className="text-sm font-semibold">{anon ? `Anon #${m.anon_no}` : name(m.sender)}</span>
+                      {isMe && <span className="rounded bg-accent/15 px-1.5 text-[10px] font-semibold uppercase text-accent">You</span>}
+                      <span className="muted text-xs">{timeAgo(m.created_at)}</span>
+                    </div>
+                    <p className="whitespace-pre-wrap break-words text-[15px] leading-snug">{m.content}</p>
+                  </div>
+                </div>
+              )
+            })}
             <div ref={bottom} />
           </div>
-          {error && <p className="px-4 pb-1 text-sm text-red-600 dark:text-red-400">{error}</p>}
-          <form onSubmit={send} className="flex gap-2 border-t border-zinc-200 p-3 dark:border-zinc-800">
-            <input className="input" value={text} onChange={(e) => setText(e.target.value)} maxLength={2000} placeholder={anon ? `Message as Anon #${member.anon_no}` : 'Write a message'} />
-            <button className="btn btn-primary" aria-label="Send"><Send size={15} /></button>
+
+          {error && <p className="shrink-0 px-4 pb-1 text-sm text-red-600 dark:text-red-400">{error}</p>}
+          <form onSubmit={send} className="flex shrink-0 items-center gap-2 border-t border-zinc-100 px-3 pt-3 dark:border-zinc-800/70" style={{ paddingBottom: 'max(env(safe-area-inset-bottom), 12px)' }}>
+            <input className="input rounded-full px-4" value={text} onChange={(e) => setText(e.target.value)} maxLength={2000} placeholder={anon ? `Message as Anon #${member.anon_no}` : 'Message'} />
+            <button className="btn btn-primary h-10 w-10 shrink-0 rounded-full p-0" aria-label="Send" disabled={!text.trim()}><Send size={16} /></button>
           </form>
         </>
       )}

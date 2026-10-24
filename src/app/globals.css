@@ -2,16 +2,37 @@
 @tailwind components;
 @tailwind utilities;
 
+:root { --accent: 79 70 229; }
+.dark { --accent: 129 140 248; }
+
 @layer base {
-  html { font-family: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; }
+  html {
+    font-family: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+    -webkit-tap-highlight-color: transparent;
+  }
   body { @apply bg-white text-zinc-900 antialiased dark:bg-zinc-950 dark:text-zinc-100; }
-  :focus-visible { @apply outline-none ring-2 ring-zinc-400 dark:ring-zinc-500; }
+  ::selection { @apply bg-accent/30; }
+  :focus-visible { @apply outline-none ring-2 ring-accent/60; }
+  input, textarea, select { font-size: 16px; }
 }
+
 @layer components {
-  .input { @apply w-full rounded border border-zinc-300 bg-transparent px-3 py-2 text-sm outline-none placeholder:text-zinc-400 focus:border-zinc-900 dark:border-zinc-700 dark:focus:border-zinc-300; }
-  .btn { @apply inline-flex items-center justify-center gap-1.5 rounded border border-zinc-300 px-3 py-1.5 text-sm font-medium transition-colors hover:bg-zinc-100 disabled:opacity-50 dark:border-zinc-700 dark:hover:bg-zinc-900; }
-  .btn-primary { @apply border-zinc-900 bg-zinc-900 text-white hover:bg-zinc-700 dark:border-zinc-100 dark:bg-zinc-100 dark:text-zinc-900 dark:hover:bg-zinc-300; }
-  .btn-danger { @apply border-red-300 text-red-600 hover:bg-red-50 dark:border-red-900 dark:text-red-400 dark:hover:bg-red-950; }
+  .input {
+    @apply w-full rounded-lg border border-zinc-200 bg-zinc-50 px-3.5 py-2.5 text-[15px] outline-none transition placeholder:text-zinc-400 focus:border-accent focus:bg-white focus:ring-2 focus:ring-accent/20 dark:border-zinc-800 dark:bg-zinc-900 dark:focus:bg-zinc-950;
+  }
+  .btn {
+    @apply inline-flex items-center justify-center gap-1.5 whitespace-nowrap rounded-lg border border-zinc-200 bg-white px-3.5 py-2 text-sm font-medium text-zinc-800 transition hover:bg-zinc-50 active:scale-[.98] disabled:pointer-events-none disabled:opacity-50 dark:border-zinc-800 dark:bg-zinc-900 dark:text-zinc-100 dark:hover:bg-zinc-800;
+  }
+  .btn-primary {
+    @apply border-transparent bg-accent text-white hover:bg-accent/90 dark:border-transparent dark:bg-accent dark:text-zinc-950 dark:hover:bg-accent/90;
+  }
+  .btn-danger {
+    @apply border-red-200 bg-white text-red-600 hover:bg-red-50 dark:border-red-900/60 dark:bg-zinc-900 dark:text-red-400 dark:hover:bg-red-950/40;
+  }
   .muted { @apply text-zinc-500 dark:text-zinc-400; }
-  .row { @apply flex items-center gap-3 border-b border-zinc-200 px-4 py-3 dark:border-zinc-800; }
+  .hair { @apply border-zinc-100 dark:border-zinc-800/70; }
+  .row { @apply flex items-center gap-3 border-b border-zinc-100 px-4 py-3 dark:border-zinc-800/70; }
+  .card { @apply rounded-xl border border-zinc-200 bg-white dark:border-zinc-800 dark:bg-zinc-950; }
+  .chat-screen { height: 100vh; height: 100dvh; }
+  .safe-b { padding-bottom: max(env(safe-area-inset-bottom), 0px); }
 }

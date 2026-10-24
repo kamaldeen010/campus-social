@@ -1,7 +1,7 @@
 'use client'
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { Sun, Moon } from 'lucide-react'
+import { Sun, Moon, LogOut } from 'lucide-react'
 import { supabase } from '@/lib/supabase'
 import { useAuth } from '@/providers/AuthProvider'
 import { useTheme } from '@/providers/ThemeProvider'
@@ -10,8 +10,9 @@ import { Avatar, PageHeader, PersonRow, Toggle } from '@/components/ui'
 
 function Section({ title, children }) {
   return (
-    <section className="space-y-3 border-b border-zinc-200 px-4 py-5 dark:border-zinc-800">
-      <h2 className="text-sm font-semibold">{title}</h2>{children}
+    <section className="px-4 py-3">
+      <h2 className="muted mb-2 px-1 text-xs font-medium uppercase tracking-wide">{title}</h2>
+      <div className="card space-y-4 p-4">{children}</div>
     </section>
   )
 }
@@ -59,10 +60,10 @@ export default function SettingsPage() {
       <PageHeader title="Settings" />
 
       <Section title="Appearance">
-        <div className="flex gap-2">
+        <div className="grid grid-cols-2 gap-2">
           {[['light', 'Light', Sun], ['dark', 'Dark', Moon]].map(([k, l, Icon]) => (
             <button key={k} onClick={() => setTheme(k)} aria-pressed={theme === k}
-              className={`btn flex-1 ${theme === k ? 'btn-primary' : ''}`}><Icon size={14} />{l}</button>
+              className={`btn py-3 ${theme === k ? 'border-accent text-accent' : ''}`}><Icon size={15} />{l}</button>
           ))}
         </div>
       </Section>
@@ -73,8 +74,8 @@ export default function SettingsPage() {
       </Section>
 
       <Section title="Profile">
-        <div className="flex items-center gap-3">
-          <Avatar profile={profile} size={56} />
+        <div className="flex items-center gap-4">
+          <Avatar profile={profile} size={64} />
           <button className="btn" onClick={() => file.current?.click()}>Change photo</button>
           <input ref={file} type="file" accept="image/*" hidden onChange={upload} />
         </div>
@@ -87,10 +88,11 @@ export default function SettingsPage() {
       </Section>
 
       <Section title="Blocked accounts">
-        {blocked.length === 0 ? <p className="muted text-sm">You haven't blocked anyone.</p> :
-          <div className="-mx-4 border-t border-zinc-200 dark:border-zinc-800">
+        {blocked.length === 0 ? <p className="muted text-sm">You haven't blocked anyone.</p> : (
+          <div className="-mx-4 -my-4">
             {blocked.map((b) => <PersonRow key={b.id} profile={b}><button className="btn" onClick={() => unblock(b.id)}>Unblock</button></PersonRow>)}
-          </div>}
+          </div>
+        )}
       </Section>
 
       <Section title="Account">
@@ -105,8 +107,9 @@ export default function SettingsPage() {
             ))}
           </div>
         )}
-        <button className="btn" onClick={logout}>Sign out</button>
+        <button className="btn w-full" onClick={logout}><LogOut size={15} />Sign out</button>
       </Section>
+      <div className="h-6" />
     </>
   )
 }

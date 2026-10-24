@@ -2,7 +2,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import Link from 'next/link'
 import { useParams } from 'next/navigation'
-import { Send } from 'lucide-react'
+import { ArrowLeft, Send } from 'lucide-react'
 import { supabase } from '@/lib/supabase'
 import { useAuth } from '@/providers/AuthProvider'
 import { name } from '@/lib/format'
@@ -54,18 +54,24 @@ export default function ThreadPage() {
     await supabase.rpc(accept ? 'accept_message_request' : 'decline_message_request', { p_sender: other.id }); load()
   }
 
-  if (state === 'loading') return <Empty>Loading…</Empty>
-  if (state === 'missing') return <Empty>No account with the username @{username}.</Empty>
+  if (state === 'loading') return <div className="chat-screen grid place-items-center"><div className="h-8 w-8 animate-pulse rounded-lg bg-accent" /></div>
+  if (state === 'missing') return <Empty title="Account not found">There is no @{username}.</Empty>
 
   return (
-    <div className="flex h-[calc(100vh-6.5rem)] flex-col md:h-[calc(100vh-2.5rem)]">
-      <Link href={`/u/${other.username}`} className="flex items-center gap-3 border-b border-zinc-200 px-4 py-2.5 dark:border-zinc-800">
-        <Avatar profile={other} size={32} />
-        <div><div className="text-sm font-medium">{name(other)}</div><div className="muted text-xs">@{other.username}</div></div>
-      </Link>
+    <div className="chat-screen flex flex-col">
+      <header className="flex shrink-0 items-center gap-2 border-b border-zinc-100 px-3 py-2.5 dark:border-zinc-800/70">
+        <Link href="/messages" aria-label="Back" className="rounded-full p-2 hover:bg-zinc-100 dark:hover:bg-zinc-900"><ArrowLeft size={18} /></Link>
+        <Link href={`/u/${other.username}`} className="flex min-w-0 items-center gap-3">
+          <Avatar profile={other} size={36} />
+          <div className="min-w-0">
+            <div className="truncate text-[15px] font-semibold leading-tight">{name(other)}</div>
+            <div className="muted truncate text-xs">@{other.username}</div>
+          </div>
+        </Link>
+      </header>
 
       {pendingFromThem > 0 && (
-        <div className="flex items-center justify-between gap-3 border-b border-zinc-200 bg-zinc-50 px-4 py-2 text-sm dark:border-zinc-800 dark:bg-zinc-900">
+        <div className="flex shrink-0 items-center justify-between gap-3 border-b border-zinc-100 bg-zinc-50 px-4 py-2.5 text-sm dark:border-zinc-800/70 dark:bg-zinc-900">
           <span>{name(other)} sent you a message request.</span>
           <span className="flex gap-2">
             <button className="btn btn-primary" onClick={() => respond(true)}>Accept</button>
@@ -74,13 +80,15 @@ export default function ThreadPage() {
         </div>
       )}
 
-      <div className="flex-1 space-y-2 overflow-y-auto px-4 py-4">
-        {visible.length === 0 && <Empty>Say hello to {name(other)}.</Empty>}
+      <div className="min-h-0 flex-1 space-y-1.5 overflow-y-auto px-4 py-4">
+        {visible.length === 0 && <Empty title={`Say hello to ${name(other)}`} />}
         {visible.map((m) => {
           const mine = m.sender_id === me.id
           return (
             <div key={m.id} className={`flex ${mine ? 'justify-end' : 'justify-start'}`}>
-              <div className={`max-w-[80%] whitespace-pre-wrap break-words border px-3 py-2 text-sm ${mine ? 'border-zinc-900 bg-zinc-900 text-white dark:border-zinc-100 dark:bg-zinc-100 dark:text-zinc-900' : 'border-zinc-200 dark:border-zinc-800'} rounded`}>
+              <div className={`max-w-[78%] whitespace-pre-wrap break-words px-3.5 py-2 text-[15px] leading-snug ${mine
+                ? 'rounded-2xl rounded-br-md bg-accent text-white dark:text-zinc-950'
+                : 'rounded-2xl rounded-bl-md bg-zinc-100 dark:bg-zinc-900'}`}>
                 {m.content}
                 {m.status === 'pending' && <div className="mt-1 text-[11px] opacity-70">Sent as a request. Waiting for them to accept.</div>}
               </div>
@@ -90,10 +98,10 @@ export default function ThreadPage() {
         <div ref={bottom} />
       </div>
 
-      {error && <p className="px-4 pb-1 text-sm text-red-600 dark:text-red-400">{error}</p>}
-      <form onSubmit={send} className="flex gap-2 border-t border-zinc-200 p-3 dark:border-zinc-800">
-        <input className="input" value={text} onChange={(e) => setText(e.target.value)} maxLength={2000} placeholder="Write a message" />
-        <button className="btn btn-primary" aria-label="Send"><Send size={15} /></button>
+      {error && <p className="shrink-0 px-4 pb-1 text-sm text-red-600 dark:text-red-400">{error}</p>}
+      <form onSubmit={send} className="safe-b flex shrink-0 items-center gap-2 border-t border-zinc-100 px-3 pt-3 dark:border-zinc-800/70" style={{ paddingBottom: 'max(env(safe-area-inset-bottom), 12px)' }}>
+        <input className="input rounded-full px-4" value={text} onChange={(e) => setText(e.target.value)} maxLength={2000} placeholder="Message" />
+        <button className="btn btn-primary h-10 w-10 shrink-0 rounded-full p-0" aria-label="Send" disabled={!text.trim()}><Send size={16} /></button>
       </form>
     </div>
   )
